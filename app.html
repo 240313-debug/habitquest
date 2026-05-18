@@ -2,184 +2,129 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f9bff">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>⚔️ HabitQuest</title>
 <!--
-  ============================================================
-  HabitQuest — no login. The app works fully offline by just
-  opening this file. The GLOBAL leaderboard (compare with
-  everyone, on any device) needs a free Firebase Firestore.
-  No Google sign-in, no hosting, no build — just paste config.
-
-  ONE-TIME SETUP (~3 min):
-   1. https://console.firebase.google.com → Add project.
-   2. Build → Firestore Database → Create database →
-      "Production mode" → pick a location → Enable.
-   3. Firestore → Rules tab → replace everything with:
-
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-            match /leaderboard/{id} {
-              allow read: if true;
-              allow write: if request.resource.data.keys()
-                              .hasOnly(['name','totalXp','updatedAt'])
-                && request.resource.data.name is string
-                && request.resource.data.name.size() <= 40
-                && request.resource.data.totalXp is int
-                && request.resource.data.totalXp >= 0
-                && request.resource.data.totalXp <= 10000000
-                && request.resource.data.updatedAt is int;
-            }
-          }
-        }
-      ...then Publish.
-   4. Project settings (gear) → "Your apps" → Web app (</>) →
-      register → copy the firebaseConfig values into the
-      window.APP_CONFIG.firebase block below (replace PASTE_*).
-   5. Reload. Everyone who plays now shows on one leaderboard.
-
-  Privacy note: only display NAME + total XP are sent to the
-  shared leaderboard. Age, gender and "why" stay on the device.
-  No login means the board is open — fine for friends/classmates,
-  not bank-grade. Internet needed only for the global board;
-  everything else keeps working offline.
-  ============================================================
+  HabitQuest — single file. LOCAL accounts (username+password stored
+  in this browser only; password is lightly hashed, NOT bank-secure).
+  Global leaderboard via Firebase Firestore (database "habitquestdb",
+  doc shape {name,totalXp,updatedAt}). Re-upload to GitHub Pages
+  after editing so everyone gets updates.
 -->
 <style>
   :root{
-    --ink:#0e2230;
-    --good:#0fae6e; --good-dk:#0a8a57;
-    --accent:#2f9bff; --accent2:#7b5cff;
+    --ink:#0e2230;--muted:#5a6b78;
+    --bg1:#27e0c0;--bg2:#2f9bff;--bg3:#7b5cff;
+    --card:rgba(255,255,255,.94);--cardSolid:#fff;
+    --line:#eef2f6;--inputbd:#e2e9f0;--track:#e4ecf2;
+    --good:#0fae6e;--good-dk:#0a8a57;--accent:#2f9bff;--accent2:#7b5cff;
+    --chip:#eef2f6;--chipink:#5a6b78;
+  }
+  [data-theme="dark"]{
+    --ink:#e9f1f7;--muted:#9fb2c0;--bg1:#0b1e2e;--bg2:#13243a;--bg3:#241846;
+    --card:rgba(22,30,42,.92);--cardSolid:#161e2a;--line:#26323f;--inputbd:#2d3a48;
+    --track:#1f2a36;--good:#16c47f;--good-dk:#19d488;--accent:#4aa8ff;--accent2:#9b7bff;
+    --chip:#22303d;--chipink:#9fb2c0;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{
-    font-family:"Trebuchet MS","Segoe UI",Verdana,system-ui,sans-serif;
-    color:var(--ink);
-    background:linear-gradient(135deg,#27e0c0 0%,#2f9bff 50%,#7b5cff 100%);
-    min-height:100%;
-    display:flex;align-items:flex-start;justify-content:center;
-    padding:24px;
-  }
-  .wrap{width:100%;max-width:600px}
-
-  header{text-align:center;margin-bottom:18px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.22)}
+  body{font-family:"Trebuchet MS","Segoe UI",Verdana,system-ui,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1)0%,var(--bg2)50%,var(--bg3)100%);
+    background-attachment:fixed;min-height:100%;display:flex;align-items:flex-start;
+    justify-content:center;padding:24px;transition:background .4s,color .3s}
+  .wrap{width:100%;max-width:620px}
+  header{text-align:center;margin-bottom:14px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.22)}
   header h1{font-size:clamp(28px,7vw,44px);line-height:1.05;letter-spacing:-1px}
   header p{margin-top:6px;font-size:14px;opacity:.95;font-style:italic}
-
-  .card{
-    background:rgba(255,255,255,.94);
-    border-radius:20px;padding:20px;margin-bottom:16px;
-    box-shadow:0 16px 44px rgba(0,0,0,.26);
-  }
-  .hide{display:none !important}
-
-  h2{font-size:20px;margin-bottom:6px;color:var(--accent2)}
-  .muted{font-size:13px;color:#5a6b78;line-height:1.5}
-
+  #quote{margin-top:8px;font-size:13px;opacity:.92;min-height:18px}
+  .card{background:var(--card);border-radius:20px;padding:20px;margin-bottom:16px;
+    box-shadow:0 16px 44px rgba(0,0,0,.26);backdrop-filter:blur(4px)}
+  .hide{display:none!important}
+  h2{font-size:19px;margin-bottom:6px;color:var(--accent2)}
+  .muted{font-size:13px;color:var(--muted);line-height:1.5}
+  .row{display:flex;align-items:center;gap:10px}.spread{justify-content:space-between}
   .field{display:flex;flex-direction:column;gap:5px;margin-top:12px}
-  label{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;color:#5a6b78}
-  input,select,textarea{
-    width:100%;padding:11px 12px;border-radius:12px;border:2px solid #e2e9f0;
-    background:#fff;font-size:15px;font-family:inherit;color:var(--ink);
-  }
-  textarea{resize:vertical;min-height:64px}
+  label{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:2px solid var(--inputbd);
+    background:var(--cardSolid);font-size:15px;font-family:inherit;color:var(--ink)}
+  textarea{resize:vertical;min-height:58px}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-
-  button{
-    font-family:inherit;font-weight:bold;border:none;border-radius:14px;
-    cursor:pointer;padding:13px 16px;font-size:15px;color:#fff;
-    transition:transform .08s ease,filter .15s ease;
-  }
-  button:active{transform:translateY(2px) scale(.99)}
-  button:hover:not(:disabled){filter:brightness(1.06)}
-  .primary{width:100%;margin-top:16px;font-size:16px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .link{background:none;color:#5a6b78;font-size:13px;padding:8px;width:100%}
+  button{font-family:inherit;font-weight:bold;border:none;border-radius:14px;cursor:pointer;
+    padding:13px 16px;font-size:15px;color:#fff;transition:transform .08s,filter .15s}
+  button:active{transform:translateY(2px) scale(.99)}button:hover:not(:disabled){filter:brightness(1.06)}
+  .primary{width:100%;margin-top:16px;font-size:16px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .link{background:none;color:var(--muted);font-size:13px;padding:8px;width:100%}
   .applink{background:none;color:#fff;font-size:13px;padding:8px;width:100%}
-
-  .stat-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .who{display:flex;align-items:center;gap:10px}
-  .ava{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;
-    justify-content:center;font-weight:900;font-size:18px;color:#fff;
-    background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .who .name{font-weight:900;font-size:16px}
-  .who .lvl{font-size:12px;color:#5a6b78;font-weight:bold}
-  .rank{
-    font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;
-    color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
-    padding:6px 12px;border-radius:999px;white-space:nowrap;
-  }
-  .bar-label{display:flex;justify-content:space-between;font-size:12px;
-    font-weight:bold;color:#5a6b78;margin:14px 0 6px}
-  .track{height:14px;border-radius:999px;background:#e4ecf2;overflow:hidden}
-  .fill{height:100%;width:0;border-radius:999px;
-    background:linear-gradient(90deg,var(--accent),var(--accent2));
+  .iconbtn{width:38px;height:38px;padding:0;border-radius:50%;font-size:17px;
+    background:var(--chip);color:var(--chipink);flex:0 0 auto}
+  .tabs{display:flex;gap:8px;margin-top:10px}
+  .tabs button{flex:1;background:var(--chip);color:var(--chipink)}
+  .tabs button.act{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .ava{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:24px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));flex:0 0 auto}
+  .who .name{font-weight:900;font-size:16px}.who .lvl{font-size:12px;color:var(--muted);font-weight:bold}
+  .rank{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));padding:6px 12px;border-radius:999px;white-space:nowrap}
+  .bar-label{display:flex;justify-content:space-between;font-size:12px;font-weight:bold;color:var(--muted);margin:14px 0 6px}
+  .track{height:14px;border-radius:999px;background:var(--track);overflow:hidden}
+  .fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));
     transition:width .5s cubic-bezier(.22,1,.36,1)}
-
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:460px){.grid{grid-template-columns:1fr}}
-  .task{
-    position:relative;overflow:hidden;text-align:left;cursor:pointer;
-    border:none;border-radius:18px;padding:16px 16px 14px;color:var(--ink);
-    background:#fff;box-shadow:0 8px 22px rgba(0,0,0,.14);
-    transition:transform .08s ease,filter .15s ease,background .25s ease;
-  }
-  .task:hover:not(.done){filter:brightness(1.04)}
-  .task:active:not(.done){transform:translateY(2px) scale(.99)}
-  .task .emoji{font-size:32px;line-height:1}
-  .task .label{margin-top:8px;font-size:15px;font-weight:800}
+  .pills{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .pill{display:flex;align-items:center;gap:6px;background:var(--chip);color:var(--chipink);
+    font-size:12px;font-weight:bold;padding:7px 11px;border-radius:999px}
+  .pill b{color:var(--ink);font-size:13px}
+  .pill.fire{background:linear-gradient(135deg,#ff8a3c,#ff5e7e);color:#fff}.pill.fire b{color:#fff}
+  .pill.goal.done{background:linear-gradient(135deg,var(--good),#0bd47e);color:#fff}.pill.goal.done b{color:#fff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media(max-width:480px){.grid{grid-template-columns:1fr}}
+  .task{position:relative;overflow:hidden;text-align:left;cursor:pointer;border:none;border-radius:18px;
+    padding:16px 16px 14px;color:var(--ink);background:var(--cardSolid);box-shadow:0 8px 22px rgba(0,0,0,.14);
+    transition:transform .08s,filter .15s,background .25s}
+  .task:hover:not(.done){filter:brightness(1.04)}.task:active:not(.done){transform:translateY(2px) scale(.99)}
+  .task .emoji{font-size:30px;line-height:1}.task .label{margin-top:8px;font-size:15px;font-weight:800}
   .task .meta{margin-top:4px;font-size:13px;font-weight:bold;color:var(--accent2)}
-  .task.done{cursor:default;background:linear-gradient(135deg,#d6f7e8,#bff0d8);
-    box-shadow:0 8px 22px rgba(15,174,110,.26)}
+  .task.done{cursor:default;background:linear-gradient(135deg,#d6f7e8,#bff0d8);box-shadow:0 8px 22px rgba(15,174,110,.26)}
+  [data-theme="dark"] .task.done{background:linear-gradient(135deg,#10322a,#0e3b2c)}
   .task.done .label,.task.done .meta{color:var(--good-dk)}
-  .task .check{position:absolute;top:12px;right:14px;font-size:18px;
-    opacity:0;transform:scale(.4);transition:opacity .25s,transform .25s}
+  .task .check{position:absolute;top:12px;right:14px;font-size:18px;opacity:0;transform:scale(.4);transition:.25s}
   .task.done .check{opacity:1;transform:scale(1)}
-  .floatxp{position:absolute;left:50%;top:50%;font-size:20px;font-weight:900;
-    color:var(--good);pointer-events:none;animation:floatup 1s ease-out forwards}
-  @keyframes floatup{
-    0%{transform:translate(-50%,-50%) scale(.6);opacity:0}
-    25%{transform:translate(-50%,-90%) scale(1.1);opacity:1}
-    100%{transform:translate(-50%,-220%) scale(1);opacity:0}}
-
+  .task .del{position:absolute;top:8px;left:8px;width:24px;height:24px;border-radius:50%;
+    background:rgba(0,0,0,.35);color:#fff;font-size:13px;line-height:24px;text-align:center;padding:0}
+  .floatxp{position:absolute;left:50%;top:50%;font-size:20px;font-weight:900;color:var(--good);
+    pointer-events:none;animation:fu 1s ease-out forwards}
+  @keyframes fu{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}
+    25%{transform:translate(-50%,-90%) scale(1.1);opacity:1}100%{transform:translate(-50%,-220%) scale(1);opacity:0}}
+  .addq{display:grid;grid-template-columns:1fr 64px 120px;gap:8px;margin-top:12px}
+  @media(max-width:480px){.addq{grid-template-columns:1fr 1fr}}
+  .addq input,.addq select{margin:0}.addq .full{grid-column:1/-1}
+  .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:12px}
+  .badge{text-align:center;background:var(--cardSolid);border-radius:14px;padding:12px 6px;
+    box-shadow:0 6px 16px rgba(0,0,0,.10);opacity:.4;filter:grayscale(1);transition:.2s}
+  .badge.on{opacity:1;filter:none}.badge .bi{font-size:26px}.badge .bn{font-size:11px;font-weight:bold;margin-top:5px}
+  .badge .bd{font-size:10px;color:var(--muted);margin-top:2px}
   .lb-note{font-size:12px;font-weight:bold;margin-bottom:8px}
-  .lb-note.on{color:var(--good-dk)}
-  .lb-note.off{color:#b06a00}
-  .lb-row{display:flex;align-items:center;gap:10px;padding:10px 8px;
-    border-bottom:1px solid #eef2f6;font-size:14px}
+  .lb-note.on{color:var(--good-dk)}.lb-note.off{color:#c07a00}
+  .lb-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--line);font-size:14px}
   .lb-row:last-child{border-bottom:none}
-  .lb-rank{width:28px;font-weight:900;color:#5a6b78;text-align:center}
+  .lb-rank{width:28px;font-weight:900;color:var(--muted);text-align:center}
   .lb-name{flex:1;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .lb-tier{font-size:11px;font-weight:bold;text-transform:uppercase;
-    padding:3px 8px;border-radius:999px;background:#eef2f6;color:#5a6b78}
+  .lb-tier{font-size:11px;font-weight:bold;text-transform:uppercase;padding:3px 8px;border-radius:999px;
+    background:var(--chip);color:var(--chipink)}
   .lb-xp{font-weight:900;color:var(--accent2);min-width:74px;text-align:right}
-  .lb-row.me{background:#eaf3ff;border-radius:10px}
-  .lb-row.me .lb-name::after{content:" (you)";color:var(--accent);font-size:12px}
-
-  .prow{display:flex;align-items:center;gap:10px;padding:10px 0;
-    border-bottom:1px solid #eef2f6}
-  .prow:last-child{border-bottom:none}
-  .prow .info{flex:1}
-  .prow .pn{font-weight:bold}
-  .prow .ps{font-size:12px;color:#5a6b78}
-  .prow button{width:auto;padding:9px 14px;font-size:13px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .prow.cur{opacity:.6}
-
+  .lb-row.me{background:rgba(47,155,255,.14);border-radius:10px}
   .levelup{position:fixed;left:50%;top:22px;transform:translateX(-50%) translateY(-160%);
-    background:linear-gradient(135deg,#ffd34d,#ff9a3c);color:#3a2a00;
-    font-weight:900;font-size:16px;padding:14px 22px;border-radius:16px;
-    box-shadow:0 14px 36px rgba(0,0,0,.32);z-index:60;text-align:center;
+    background:linear-gradient(135deg,#ffd34d,#ff9a3c);color:#3a2a00;font-weight:900;font-size:16px;
+    padding:14px 22px;border-radius:16px;box-shadow:0 14px 36px rgba(0,0,0,.32);z-index:60;text-align:center;
     opacity:0;transition:transform .45s cubic-bezier(.18,1.4,.4,1),opacity .45s}
   .levelup.show{transform:translateX(-50%) translateY(0);opacity:1}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(160%);
-    background:#0e2230;color:#fff;font-size:14px;font-weight:bold;
-    padding:12px 18px;border-radius:12px;z-index:60;opacity:0;
-    transition:transform .35s,opacity .35s;max-width:90vw;text-align:center}
+    background:#0e2230;color:#fff;font-size:14px;font-weight:bold;padding:12px 18px;border-radius:12px;
+    z-index:60;opacity:0;transition:.35s;max-width:90vw;text-align:center}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-
+  .conf{position:fixed;top:-12px;width:10px;height:14px;z-index:55;pointer-events:none;border-radius:2px}
+  @keyframes cf{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
   footer{margin-top:6px;text-align:center;color:#fff;font-size:12px;opacity:.85}
 </style>
 </head>
@@ -187,464 +132,541 @@
   <div class="wrap">
     <header>
       <h1>⚔️ HabitQuest</h1>
-      <p>Do real things. Earn real XP. Climb the global leaderboard.</p>
+      <p data-i18n="tagline">Do real things. Earn real XP. Climb the global leaderboard.</p>
+      <div id="quote"></div>
     </header>
 
-    <!-- ONBOARDING (the 4 questions) -->
-    <section id="screen-onboard" class="card hide">
-      <h2>Create your player</h2>
-      <p class="muted">Answer 4 quick questions to start. Your name and XP show
-      on the global leaderboard.</p>
-      <div class="field">
-        <label for="f-name">Name</label>
-        <input id="f-name" type="text" maxlength="24" placeholder="Your name">
+    <!-- AUTH -->
+    <section id="screen-auth" class="card hide">
+      <div class="field" style="margin-top:0">
+        <label data-i18n="lang_label">Language</label>
+        <select id="langSel"></select>
       </div>
-      <div class="field">
-        <label for="f-age">Age</label>
-        <input id="f-age" type="number" min="1" max="120" placeholder="e.g. 17">
+      <h2 style="margin-top:14px" data-i18n="welcome">Welcome to HabitQuest</h2>
+      <div class="tabs">
+        <button id="tabIn" class="act" data-i18n="tab_in">Sign in</button>
+        <button id="tabUp" data-i18n="tab_up">Create account</button>
       </div>
-      <div class="field">
-        <label for="f-gender">Gender</label>
-        <select id="f-gender">
-          <option value="">Select…</option>
-          <option>Female</option>
-          <option>Male</option>
-          <option>Non-binary</option>
-          <option>Other</option>
-          <option>Prefer not to say</option>
-        </select>
+      <div class="field"><label data-i18n="username">Username</label>
+        <input id="a-user" type="text" maxlength="20" autocomplete="off"></div>
+      <div class="field"><label data-i18n="password">Password</label>
+        <input id="a-pass" type="password" maxlength="40"></div>
+      <div id="upFields">
+        <div class="field"><label data-i18n="name">Name</label>
+          <input id="a-name" type="text" maxlength="24"></div>
+        <div class="field"><label data-i18n="age">Age</label>
+          <input id="a-age" type="number" min="1" max="120"></div>
+        <div class="field"><label data-i18n="gender">Gender</label>
+          <select id="a-gender"></select></div>
+        <div class="field"><label data-i18n="why">Why are you here?</label>
+          <textarea id="a-reason" maxlength="200"></textarea></div>
       </div>
-      <div class="field">
-        <label for="f-reason">Why are you here?</label>
-        <textarea id="f-reason" maxlength="200" placeholder="What do you want to build or fix?"></textarea>
-      </div>
-      <button class="primary" id="saveProfileBtn">Start questing →</button>
-      <button class="link hide" id="cancelOnboard">← Back</button>
+      <button class="primary" id="authBtn">Go</button>
     </section>
 
-    <!-- PLAYER SWITCHER -->
-    <section id="screen-players" class="card hide">
-      <h2>👥 Players on this device</h2>
-      <p class="muted" style="margin-bottom:6px">Pick who's playing, or add a new person.</p>
-      <div id="playerList"></div>
-      <button class="primary" id="newPlayerBtn">➕ New player</button>
-      <button class="link" id="backToApp">← Back to my quests</button>
-    </section>
-
-    <!-- MAIN APP -->
+    <!-- APP -->
     <section id="screen-app" class="hide">
       <div class="card">
-        <div class="stat-top">
-          <div class="who">
+        <div class="row spread">
+          <div class="row">
             <div class="ava" id="meAva">?</div>
-            <div>
-              <div class="name" id="meName">—</div>
-              <div class="lvl" id="meLvl">Lv 1</div>
-            </div>
+            <div><div class="name" id="meName">—</div><div class="lvl" id="meLvl">Lv 1</div></div>
           </div>
-          <div class="rank" id="meRank">Noob</div>
+          <div class="row" style="gap:8px">
+            <div class="rank" id="meRank">Noob</div>
+            <button class="iconbtn" id="themeBtn">🌙</button>
+            <button class="iconbtn" id="soundBtn">🔊</button>
+          </div>
         </div>
-        <div class="bar-label">
-          <span id="barWhat">Progress to Pro</span>
-          <span id="barXp">0 / 3500 XP</span>
-        </div>
+        <div class="bar-label"><span id="barWhat">Progress</span><span id="barXp">0 XP</span></div>
         <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="pills">
+          <div class="pill fire">🔥 <b id="streakN">0</b>&nbsp;<span data-i18n="p_streak">day streak</span></div>
+          <div class="pill goal" id="pillGoal">🎯 <span data-i18n="p_goal">Daily goal</span> <b id="goalN">0/5</b></div>
+          <div class="pill">📊 <span data-i18n="p_today">Today</span> <b id="todayN">0</b></div>
+          <div class="pill">🏅 <span data-i18n="p_best">Best</span> <b id="bestN">0</b></div>
+          <div class="pill">✅ <span data-i18n="p_total">Total</span> <b id="totalN">0</b></div>
+        </div>
+        <div class="field"><label data-i18n="lang_label">Language</label><select id="langSel2"></select></div>
       </div>
 
       <div class="card">
-        <h2>Today's quests</h2>
-        <p class="muted" style="margin-bottom:12px">Tap to complete. Each resets 24h after you do it.</p>
+        <h2 data-i18n="q_title">Today's quests</h2>
+        <p class="muted" data-i18n="q_sub">Tap to complete. Each resets 24h after you do it.</p>
         <div class="grid" id="grid"></div>
+        <div class="addq">
+          <input id="cqLabel" type="text" maxlength="28" data-i18n-ph="aq_ph" placeholder="Add your own quest…">
+          <input id="cqEmoji" type="text" maxlength="2" placeholder="⭐">
+          <select id="cqXp"></select>
+          <button class="primary full" id="cqAdd" style="margin-top:0" data-i18n="aq_btn">➕ Add quest</button>
+        </div>
       </div>
 
       <div class="card">
-        <h2>🏆 Leaderboard</h2>
-        <div class="lb-note off" id="lbNote">Global leaderboard off — showing this device only.</div>
-        <div id="board"><p class="muted">No questers yet.</p></div>
+        <h2 data-i18n="a_title">🏅 Achievements</h2>
+        <p class="muted" id="achSummary"></p>
+        <div class="badges" id="badges"></div>
       </div>
 
-      <button class="applink" id="switchPlayerBtn">👥 Switch / add player</button>
+      <div class="card">
+        <h2 data-i18n="l_title">🏆 Leaderboard</h2>
+        <div class="lb-note off" id="lbNote"></div>
+        <div id="board"></div>
+      </div>
+
+      <button class="applink" id="logoutBtn" data-i18n="logout">🚪 Log out</button>
     </section>
 
-    <footer>No login · plays offline · global board via Firebase</footer>
+    <footer>No login server · plays offline · global board via Firebase</footer>
   </div>
 
   <div class="levelup" id="levelup"></div>
   <div class="toast" id="toast"></div>
 
 <script>
-  // ===== Paste your Firebase web config here (see comment at top of file) =====
   window.APP_CONFIG = {
-    firebase: {
-      apiKey:            "AIzaSyDy5qiO5vCy56YS6Pswz8zAT84ZizLU5rQ",
-      authDomain:        "habitquest-9d63a.firebaseapp.com",
-      projectId:         "habitquest-9d63a",
-      storageBucket:     "habitquest-9d63a.firebasestorage.app",
-      messagingSenderId: "252760531430",
-      appId:             "1:252760531430:web:a75a215a191582465a7627"
-    },
-    // This project's Firestore DB is a NAMED database (Standard edition,
-    // Native mode). Leave as "(default)" only if you used the standard
-    // default database.
-    databaseId: "habitquestdb"
+    firebase:{ apiKey:"AIzaSyDy5qiO5vCy56YS6Pswz8zAT84ZizLU5rQ",
+      authDomain:"habitquest-9d63a.firebaseapp.com", projectId:"habitquest-9d63a",
+      storageBucket:"habitquest-9d63a.firebasestorage.app",
+      messagingSenderId:"252760531430", appId:"1:252760531430:web:a75a215a191582465a7627" },
+    databaseId:"habitquestdb"
   };
 </script>
-
 <script>
 (function(){
   "use strict";
+  var SK="hq.v4", CD=24*60*60*1000, GOAL=5, BONUS=50;
+  var FB=(window.APP_CONFIG&&window.APP_CONFIG.firebase)||{};
+  var NEEDS=["apiKey","projectId","appId"].some(function(k){return typeof FB[k]!=="string"||FB[k].indexOf("PASTE")===0;});
 
-  var STORAGE_KEY = "hq.v3";
-  var COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  /* ---- i18n ---- */
+  var LANGS=[["en","English"],["en-GB","English (UK)"],["fr","Français"],
+    ["es","Español"],["zh","中文"],["ja","日本語"],["hi","हिन्दी"]];
+  var T={
+   en:{tagline:"Do real things. Earn real XP. Climb the global leaderboard.",lang_label:"Language",
+    welcome:"Welcome to HabitQuest",tab_in:"Sign in",tab_up:"Create account",username:"Username",
+    password:"Password",name:"Name",age:"Age",gender:"Gender",why:"Why are you here?",
+    why_ph:"What do you want to build or fix?",gsel:"Select…",gf:"Female",gm:"Male",gn:"Non-binary",
+    go:"Other",gp:"Prefer not to say",b_in:"Sign in →",b_up:"Create account →",
+    e_user:"Enter a username.",e_pass:"Password must be at least 4 characters.",
+    e_name:"Please enter your name.",e_age:"Please enter a valid age.",e_gender:"Please select a gender.",
+    e_reason:"Tell us why you're here.",e_exists:"That username already exists.",
+    e_login:"Wrong username or password.",q_title:"Today's quests",
+    q_sub:"Tap to complete. Each resets 24h after you do it.",aq_ph:"Add your own quest…",
+    d_easy:"Easy +15",d_med:"Medium +25",d_hard:"Hard +40",aq_btn:"➕ Add quest",
+    q_added:"Quest added!",q_name:"Name your quest first.",q_del:"Delete this custom quest?",
+    a_title:"🏅 Achievements",a_count:"{n} / {m} unlocked",a_unl:"🏅 Achievement: {n}!",
+    l_title:"🏆 Leaderboard",l_global:"🌍 Global — everyone playing, worldwide.",
+    l_off:"Global board off — add Firebase config (top of app.html).",
+    l_conn:"Connecting to global leaderboard…",l_unreach:"Global board unreachable — showing this device.",
+    l_none:"No questers yet.",you:"you",prog:"Progress to {r}",maxed:"Top rank — keep farming!",
+    rankup:"⭐ Rank Up! You're now {r}!",goalb:"🎯 Daily goal smashed! +{x} bonus XP",
+    ready:"Ready in",p_streak:"day streak",p_goal:"Daily goal",p_today:"Today",p_best:"Best",
+    p_total:"Total",logout:"🚪 Log out"},
+   fr:{tagline:"Fais de vraies choses. Gagne de l'XP. Grimpe au classement mondial.",lang_label:"Langue",
+    welcome:"Bienvenue sur HabitQuest",tab_in:"Se connecter",tab_up:"Créer un compte",
+    username:"Nom d'utilisateur",password:"Mot de passe",name:"Nom",age:"Âge",gender:"Genre",
+    why:"Pourquoi es-tu là ?",why_ph:"Que veux-tu accomplir ?",gsel:"Choisir…",gf:"Femme",gm:"Homme",
+    gn:"Non-binaire",go:"Autre",gp:"Préfère ne pas dire",b_in:"Se connecter →",b_up:"Créer le compte →",
+    e_user:"Entre un nom d'utilisateur.",e_pass:"Le mot de passe doit faire au moins 4 caractères.",
+    e_name:"Entre ton nom.",e_age:"Entre un âge valide.",e_gender:"Choisis un genre.",
+    e_reason:"Dis-nous pourquoi tu es là.",e_exists:"Ce nom d'utilisateur existe déjà.",
+    e_login:"Nom d'utilisateur ou mot de passe incorrect.",q_title:"Quêtes du jour",
+    q_sub:"Touche pour valider. Chaque quête revient 24h après.",aq_ph:"Ajoute ta propre quête…",
+    d_easy:"Facile +15",d_med:"Moyen +25",d_hard:"Difficile +40",aq_btn:"➕ Ajouter",
+    q_added:"Quête ajoutée !",q_name:"Nomme d'abord ta quête.",q_del:"Supprimer cette quête ?",
+    a_title:"🏅 Succès",a_count:"{n} / {m} débloqués",a_unl:"🏅 Succès : {n} !",
+    l_title:"🏆 Classement",l_global:"🌍 Mondial — tous les joueurs, partout.",
+    l_off:"Classement mondial désactivé — ajoute la config Firebase.",
+    l_conn:"Connexion au classement mondial…",l_unreach:"Classement injoignable — appareil seul.",
+    l_none:"Aucun joueur pour l'instant.",you:"toi",prog:"Progression vers {r}",
+    maxed:"Rang max — continue à farmer !",rankup:"⭐ Niveau supérieur ! Tu es {r} !",
+    goalb:"🎯 Objectif du jour atteint ! +{x} XP bonus",ready:"Prêt dans",p_streak:"jours de suite",
+    p_goal:"Objectif",p_today:"Aujourd'hui",p_best:"Record",p_total:"Total",logout:"🚪 Déconnexion"},
+   es:{tagline:"Haz cosas reales. Gana XP real. Sube en la clasificación mundial.",lang_label:"Idioma",
+    welcome:"Bienvenido a HabitQuest",tab_in:"Iniciar sesión",tab_up:"Crear cuenta",
+    username:"Usuario",password:"Contraseña",name:"Nombre",age:"Edad",gender:"Género",
+    why:"¿Por qué estás aquí?",why_ph:"¿Qué quieres lograr?",gsel:"Elegir…",gf:"Mujer",gm:"Hombre",
+    gn:"No binario",go:"Otro",gp:"Prefiero no decir",b_in:"Entrar →",b_up:"Crear cuenta →",
+    e_user:"Escribe un usuario.",e_pass:"La contraseña debe tener 4+ caracteres.",
+    e_name:"Escribe tu nombre.",e_age:"Escribe una edad válida.",e_gender:"Elige un género.",
+    e_reason:"Dinos por qué estás aquí.",e_exists:"Ese usuario ya existe.",
+    e_login:"Usuario o contraseña incorrectos.",q_title:"Misiones de hoy",
+    q_sub:"Toca para completar. Cada una vuelve tras 24h.",aq_ph:"Añade tu propia misión…",
+    d_easy:"Fácil +15",d_med:"Media +25",d_hard:"Difícil +40",aq_btn:"➕ Añadir",
+    q_added:"¡Misión añadida!",q_name:"Primero nombra tu misión.",q_del:"¿Borrar esta misión?",
+    a_title:"🏅 Logros",a_count:"{n} / {m} desbloqueados",a_unl:"🏅 ¡Logro: {n}!",
+    l_title:"🏆 Clasificación",l_global:"🌍 Global — todos jugando, en todo el mundo.",
+    l_off:"Clasificación global desactivada — añade la config de Firebase.",
+    l_conn:"Conectando a la clasificación global…",l_unreach:"Clasificación no disponible — solo este equipo.",
+    l_none:"Aún no hay jugadores.",you:"tú",prog:"Progreso a {r}",maxed:"Rango máximo — ¡sigue farmeando!",
+    rankup:"⭐ ¡Subiste de rango! Ahora eres {r}!",goalb:"🎯 ¡Meta diaria lograda! +{x} XP extra",
+    ready:"Listo en",p_streak:"días seguidos",p_goal:"Meta diaria",p_today:"Hoy",p_best:"Récord",
+    p_total:"Total",logout:"🚪 Cerrar sesión"},
+   zh:{tagline:"做真实的事，赚真实经验，登上全球排行榜。",lang_label:"语言",
+    welcome:"欢迎来到 HabitQuest",tab_in:"登录",tab_up:"注册账号",username:"用户名",
+    password:"密码",name:"姓名",age:"年龄",gender:"性别",why:"你为什么来这里？",
+    why_ph:"你想完成什么？",gsel:"请选择…",gf:"女",gm:"男",gn:"非二元",go:"其他",
+    gp:"不愿透露",b_in:"登录 →",b_up:"创建账号 →",e_user:"请输入用户名。",
+    e_pass:"密码至少需 4 位。",e_name:"请输入姓名。",e_age:"请输入有效年龄。",
+    e_gender:"请选择性别。",e_reason:"请告诉我们你为什么来。",e_exists:"该用户名已存在。",
+    e_login:"用户名或密码错误。",q_title:"今日任务",q_sub:"点击完成，每个任务 24 小时后重置。",
+    aq_ph:"添加你自己的任务…",d_easy:"简单 +15",d_med:"中等 +25",d_hard:"困难 +40",
+    aq_btn:"➕ 添加任务",q_added:"任务已添加！",q_name:"请先给任务命名。",q_del:"删除这个自定义任务？",
+    a_title:"🏅 成就",a_count:"已解锁 {n} / {m}",a_unl:"🏅 成就：{n}！",l_title:"🏆 排行榜",
+    l_global:"🌍 全球 — 全世界的玩家。",l_off:"全球排行榜未启用 — 请添加 Firebase 配置。",
+    l_conn:"正在连接全球排行榜…",l_unreach:"无法连接排行榜 — 仅显示本机。",
+    l_none:"还没有玩家。",you:"你",prog:"距离 {r} 的进度",maxed:"最高段位 — 继续刷经验！",
+    rankup:"⭐ 升级！你现在是 {r}！",goalb:"🎯 完成每日目标！+{x} 奖励经验",
+    ready:"剩余",p_streak:"天连续",p_goal:"每日目标",p_today:"今天",p_best:"最佳",
+    p_total:"总计",logout:"🚪 退出登录"},
+   ja:{tagline:"本当に行動して、本物のXPを稼ぎ、世界ランキングを駆け上がろう。",lang_label:"言語",
+    welcome:"HabitQuest へようこそ",tab_in:"ログイン",tab_up:"アカウント作成",username:"ユーザー名",
+    password:"パスワード",name:"名前",age:"年齢",gender:"性別",why:"なぜここに？",
+    why_ph:"何を達成したいですか？",gsel:"選択…",gf:"女性",gm:"男性",gn:"ノンバイナリー",
+    go:"その他",gp:"回答しない",b_in:"ログイン →",b_up:"作成する →",e_user:"ユーザー名を入力してください。",
+    e_pass:"パスワードは4文字以上必要です。",e_name:"名前を入力してください。",
+    e_age:"有効な年齢を入力してください。",e_gender:"性別を選択してください。",
+    e_reason:"理由を教えてください。",e_exists:"そのユーザー名は既に存在します。",
+    e_login:"ユーザー名またはパスワードが違います。",q_title:"今日のクエスト",
+    q_sub:"タップで完了。各クエストは24時間後に復活します。",aq_ph:"自分のクエストを追加…",
+    d_easy:"簡単 +15",d_med:"普通 +25",d_hard:"難しい +40",aq_btn:"➕ 追加",
+    q_added:"クエストを追加しました！",q_name:"先にクエスト名を入力してください。",
+    q_del:"このクエストを削除しますか？",a_title:"🏅 実績",a_count:"{n} / {m} 解除",
+    a_unl:"🏅 実績：{n}！",l_title:"🏆 ランキング",l_global:"🌍 グローバル — 世界中のプレイヤー。",
+    l_off:"グローバル盤オフ — Firebase設定を追加してください。",
+    l_conn:"グローバルランキングに接続中…",l_unreach:"ランキングに接続不可 — この端末のみ。",
+    l_none:"まだプレイヤーがいません。",you:"あなた",prog:"{r} までの進捗",
+    maxed:"最高ランク — ファーム継続！",rankup:"⭐ ランクアップ！あなたは {r} です！",
+    goalb:"🎯 デイリー目標達成！+{x} ボーナスXP",ready:"あと",p_streak:"日連続",
+    p_goal:"今日の目標",p_today:"今日",p_best:"最高",p_total:"合計",logout:"🚪 ログアウト"},
+   hi:{tagline:"असली काम करो, असली XP कमाओ, ग्लोबल लीडरबोर्ड पर चढ़ो।",lang_label:"भाषा",
+    welcome:"HabitQuest में आपका स्वागत है",tab_in:"साइन इन",tab_up:"खाता बनाएँ",
+    username:"यूज़रनेम",password:"पासवर्ड",name:"नाम",age:"उम्र",gender:"लिंग",
+    why:"आप यहाँ क्यों हैं?",why_ph:"आप क्या हासिल करना चाहते हैं?",gsel:"चुनें…",
+    gf:"महिला",gm:"पुरुष",gn:"नॉन-बाइनरी",go:"अन्य",gp:"नहीं बताना चाहते",
+    b_in:"साइन इन →",b_up:"खाता बनाएँ →",e_user:"यूज़रनेम डालें।",
+    e_pass:"पासवर्ड कम से कम 4 अक्षर का हो।",e_name:"अपना नाम डालें।",
+    e_age:"मान्य उम्र डालें।",e_gender:"लिंग चुनें।",e_reason:"बताएँ आप क्यों यहाँ हैं।",
+    e_exists:"यह यूज़रनेम पहले से मौजूद है।",e_login:"गलत यूज़रनेम या पासवर्ड।",
+    q_title:"आज की क्वेस्ट",q_sub:"पूरा करने के लिए टैप करें। हर एक 24 घंटे बाद रीसेट होती है।",
+    aq_ph:"अपनी क्वेस्ट जोड़ें…",d_easy:"आसान +15",d_med:"मध्यम +25",d_hard:"कठिन +40",
+    aq_btn:"➕ जोड़ें",q_added:"क्वेस्ट जुड़ गई!",q_name:"पहले क्वेस्ट का नाम दें।",
+    q_del:"यह क्वेस्ट हटाएँ?",a_title:"🏅 उपलब्धियाँ",a_count:"{n} / {m} अनलॉक",
+    a_unl:"🏅 उपलब्धि: {n}!",l_title:"🏆 लीडरबोर्ड",l_global:"🌍 ग्लोबल — दुनिया भर के खिलाड़ी।",
+    l_off:"ग्लोबल बोर्ड बंद — Firebase कॉन्फ़िग जोड़ें।",l_conn:"ग्लोबल लीडरबोर्ड से जुड़ रहे हैं…",
+    l_unreach:"लीडरबोर्ड अनुपलब्ध — केवल यह डिवाइस।",l_none:"अभी कोई खिलाड़ी नहीं।",
+    you:"आप",prog:"{r} तक प्रगति",maxed:"शीर्ष रैंक — फार्म करते रहें!",
+    rankup:"⭐ रैंक अप! अब आप {r} हैं!",goalb:"🎯 डेली लक्ष्य पूरा! +{x} बोनस XP",
+    ready:"तैयार",p_streak:"दिन की लय",p_goal:"डेली लक्ष्य",p_today:"आज",
+    p_best:"सर्वश्रेष्ठ",p_total:"कुल",logout:"🚪 लॉग आउट"}
+  };
+  T["en-GB"]=T.en;
+  var lang="en";
+  function t(k,v){var s=(T[lang]&&T[lang][k])||T.en[k]||k;
+    if(v)for(var p in v)s=s.replace("{"+p+"}",v[p]);return s;}
 
-  var FB = (window.APP_CONFIG && window.APP_CONFIG.firebase) || {};
-  var NEEDS_SETUP = ["apiKey","projectId","appId"].some(function(k){
-    return typeof FB[k] !== "string" || FB[k].indexOf("PASTE") === 0;
-  });
+  /* ---- ranks ---- */
+  var RANKS=[
+    {min:0,name:"Noob",emoji:"😢",c1:"#7c8b99",c2:"#9fb0bd"},
+    {min:3500,name:"Pro",emoji:"🤵",c1:"#d4a017",c2:"#f5c542"},
+    {min:10000,name:"Master",emoji:"🧑‍💻",c1:"#0e8a5f",c2:"#16c47f"},
+    {min:25000,name:"Best of Life",emoji:"🌱",c1:"#1fae5a",c2:"#8be37b"}
+  ];
+  function rankOf(xp){var r=RANKS[0],idx=0;
+    for(var i=0;i<RANKS.length;i++){if(xp>=RANKS[i].min){r=RANKS[i];idx=i;}}
+    var nx=RANKS[idx+1];
+    return {tier:idx+1,name:r.name,emoji:r.emoji,c1:r.c1,c2:r.c2,floor:r.min,
+      max:!nx,next:nx?nx.min:null,nextName:nx?nx.name:null};
+  }
+  function grad(a,b){return "linear-gradient(135deg,"+a+","+b+")";}
 
-  var tasks = [
-    {id:"teeth",   label:"Brush your teeth",  emoji:"🪥", xp:20},
-    {id:"water",   label:"Drink water",       emoji:"💧", xp:10},
-    {id:"meal",    label:"Eat a healthy meal",emoji:"🥗", xp:25},
-    {id:"move",    label:"Exercise / move",   emoji:"🏃", xp:40},
-    {id:"read",    label:"Read 10 minutes",   emoji:"📖", xp:30},
-    {id:"bed",     label:"Make your bed",     emoji:"🛏️", xp:15},
-    {id:"tidy",    label:"Tidy your room",    emoji:"🧹", xp:25},
-    {id:"sleep",   label:"Sleep 8 hours",     emoji:"😴", xp:35},
-    {id:"stretch", label:"Stretch / yoga",    emoji:"🧘", xp:20},
-    {id:"walk",    label:"Walk outside",      emoji:"🚶", xp:30},
-    {id:"meditate",label:"Meditate 5 min",    emoji:"🧠", xp:25},
-    {id:"journal", label:"Write in a journal",emoji:"📝", xp:20},
-    {id:"nophone", label:"1 hour no phone",   emoji:"📵", xp:35},
-    {id:"learn",   label:"Learn something new",emoji:"🎓",xp:30},
-    {id:"gratitude",label:"List 3 gratitudes",emoji:"🙏", xp:15},
-    {id:"floss",   label:"Floss your teeth",  emoji:"🦷", xp:15},
-    {id:"vitamins",label:"Take vitamins",     emoji:"💊", xp:10},
-    {id:"call",    label:"Call a loved one",  emoji:"📞", xp:25}
+  var baseTasks=[
+    {id:"teeth",label:"Brush your teeth",emoji:"🪥",xp:20},
+    {id:"water",label:"Drink water",emoji:"💧",xp:10},
+    {id:"meal",label:"Eat a healthy meal",emoji:"🥗",xp:25},
+    {id:"move",label:"Exercise / move",emoji:"🏃",xp:40},
+    {id:"read",label:"Read 10 minutes",emoji:"📖",xp:30},
+    {id:"bed",label:"Make your bed",emoji:"🛏️",xp:15},
+    {id:"tidy",label:"Tidy your room",emoji:"🧹",xp:25},
+    {id:"sleep",label:"Sleep 8 hours",emoji:"😴",xp:35},
+    {id:"stretch",label:"Stretch / yoga",emoji:"🧘",xp:20},
+    {id:"walk",label:"Walk outside",emoji:"🚶",xp:30},
+    {id:"meditate",label:"Meditate 5 min",emoji:"🧠",xp:25},
+    {id:"journal",label:"Write in a journal",emoji:"📝",xp:20},
+    {id:"nophone",label:"1 hour no phone",emoji:"📵",xp:35},
+    {id:"learn",label:"Learn something new",emoji:"🎓",xp:30},
+    {id:"gratitude",label:"List 3 gratitudes",emoji:"🙏",xp:15},
+    {id:"floss",label:"Floss your teeth",emoji:"🦷",xp:15},
+    {id:"vitamins",label:"Take vitamins",emoji:"💊",xp:10},
+    {id:"call",label:"Call a loved one",emoji:"📞",xp:25},
+    {id:"water2",label:"Drink more water",emoji:"🚰",xp:10},
+    {id:"sun",label:"Get sunlight",emoji:"☀️",xp:20},
+    {id:"plan",label:"Plan tomorrow",emoji:"🗒️",xp:20},
+    {id:"deepwork",label:"30 min deep work",emoji:"💼",xp:45}
+  ];
+  var QUOTES=["Small steps every day.","Discipline beats motivation.",
+    "You vs. you. Win today.","Consistency is the cheat code.",
+    "Tiny wins stack into big change.","Show up. Future you says thanks.",
+    "Progress > perfection.","One quest at a time."];
+  var ACHS=[
+    {id:"first",i:"🌱",n:"First Steps",d:"1 quest",t:function(s){return s.done>=1;}},
+    {id:"ten",i:"⭐",n:"Getting Going",d:"10 quests",t:function(s){return s.done>=10;}},
+    {id:"fifty",i:"🔥",n:"On Fire",d:"50 quests",t:function(s){return s.done>=50;}},
+    {id:"hundred",i:"💯",n:"Centurion",d:"100 quests",t:function(s){return s.done>=100;}},
+    {id:"streak3",i:"📅",n:"Triple",d:"3-day streak",t:function(s){return s.best>=3;}},
+    {id:"streak7",i:"🗓️",n:"Week Warrior",d:"7-day streak",t:function(s){return s.best>=7;}},
+    {id:"streak30",i:"👑",n:"Unstoppable",d:"30-day streak",t:function(s){return s.best>=30;}},
+    {id:"goal",i:"🎯",n:"Goal Crusher",d:"Hit a daily goal",t:function(s){return s.goalHit;}},
+    {id:"pro",i:"🤵",n:"Pro",d:"Reach Pro",t:function(s){return s.tier>=2;}},
+    {id:"master",i:"🧑‍💻",n:"Master",d:"Reach Master",t:function(s){return s.tier>=3;}},
+    {id:"bestlife",i:"🌿",n:"Best of Life",d:"Reach Best of Life",t:function(s){return s.tier>=4;}},
+    {id:"early",i:"🌅",n:"Early Bird",d:"Quest before 7am",t:function(s){return s.early;}},
+    {id:"night",i:"🌙",n:"Night Owl",d:"Quest after 11pm",t:function(s){return s.night;}}
   ];
 
-  function levelInfo(xp){
-    if(xp >= 10000) return {tier:3, name:"Master", max:true};
-    if(xp >= 3500)  return {tier:2, name:"Pro",  floor:3500, next:10000, nextName:"Master"};
-    return                 {tier:1, name:"Noob", floor:0,    next:3500,  nextName:"Pro"};
-  }
+  var $=function(i){return document.getElementById(i);};
+  function show(n){["auth","app"].forEach(function(s){$("screen-"+s).classList.toggle("hide",s!==n);});}
+  var tT=null;
+  function toast(m){var e=$("toast");e.textContent=m;e.classList.add("show");
+    if(tT)clearTimeout(tT);tT=setTimeout(function(){e.classList.remove("show");},3200);}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){
+    return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+  function dk(ts){var d=new Date(ts);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+  function hash(s){var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h);}
 
-  var $ = function(id){ return document.getElementById(id); };
-  var screens = ["onboard","players","app"];
-  function show(name){
-    screens.forEach(function(s){
-      $("screen-"+s).classList.toggle("hide", s !== name);
-    });
-  }
-  var toastTimer = null;
-  function toast(msg){
-    var t = $("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    if(toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 3200);
-  }
-  function esc(s){
-    return String(s).replace(/[&<>"]/g, function(ch){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch];
-    });
-  }
+  function loadDB(){try{var r=localStorage.getItem(SK);if(r){var d=JSON.parse(r);
+    if(d&&d.users)return{active:d.active||null,users:d.users,settings:d.settings||{}};}}catch(e){}
+    return{active:null,users:{},settings:{}};}
+  function saveDB(){try{localStorage.setItem(SK,JSON.stringify(db));}catch(e){toast("Storage full?");}}
+  var db=loadDB(); if(!db.settings)db.settings={};
+  function me(){return db.active?db.users[db.active]:null;}
+  function newId(){return "p"+Date.now()+"_"+Math.random().toString(36).slice(2,7);}
+  function ensure(u){if(!u)return;
+    if(typeof u.doneCount!=="number")u.doneCount=Object.keys(u.completions||{}).length;
+    if(typeof u.streak!=="number")u.streak=0;
+    if(typeof u.bestStreak!=="number")u.bestStreak=u.streak||0;
+    if(!u.lastDay)u.lastDay=null;if(!u.achievements)u.achievements={};
+    if(!u.customTasks)u.customTasks=[];if(!u.flags)u.flags={};if(!u.id)u.id=newId();}
 
-  // ---- storage ----
-  function loadDB(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if(raw){
-        var d = JSON.parse(raw);
-        if(d && d.players) return { currentId: d.currentId || null, players: d.players };
-      }
-    }catch(e){}
-    return { currentId: null, players: {} };
-  }
-  function saveDB(){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
-    catch(e){ toast("Could not save (storage blocked or full)."); }
-  }
-  var db = loadDB();
-  function me(){ return db.currentId ? db.players[db.currentId] : null; }
-  function newId(){ return "p" + Date.now() + "_" + Math.random().toString(36).slice(2,7); }
+  /* ---- juice ---- */
+  var AC=null;
+  function snd(fr,du){if(!db.settings.sound)return;
+    try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();var tm=AC.currentTime;
+      fr.forEach(function(f,i){var o=AC.createOscillator(),g=AC.createGain();o.type="triangle";
+      o.frequency.value=f;o.connect(g);g.connect(AC.destination);var st=tm+i*.08;
+      g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(.18,st+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,st+(du||.18));o.start(st);o.stop(st+(du||.18)+.02);});}catch(e){}}
+  function buzz(p){if(navigator.vibrate){try{navigator.vibrate(p);}catch(e){}}}
+  function confetti(){var c=["#ff5e7e","#ff9a3c","#2f9bff","#7b5cff","#0fae6e","#ffd34d"];
+    for(var i=0;i<26;i++){(function(){var d=document.createElement("div");d.className="conf";
+      d.style.left=(Math.random()*100)+"vw";d.style.background=c[i%c.length];
+      var du=1+Math.random()*.9;d.style.animation="cf "+du+"s linear forwards";
+      document.body.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d);},du*1000+50);})();}}
 
-  // ---- Firebase Firestore (no auth) ----
-  var fs = null;            // firestore api refs
-  var fdb = null;           // firestore db
-  var FB_READY = false;
-  var globalRows = null;    // [{id,name,totalXp}] from Firestore
+  /* ---- firestore (shape unchanged) ---- */
+  var fs=null,fdb=null,FR=false,gRows=null;
+  function setLb(){var n=$("lbNote");
+    if(NEEDS){n.className="lb-note off";n.textContent=t("l_off");}
+    else if(FR){n.className="lb-note on";n.textContent=t("l_global");}
+    else{n.className="lb-note off";n.textContent=t("l_conn");}}
+  async function initFB(){if(NEEDS){setLb();return;}setLb();
+    try{var A=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+      var F=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      var app=A.initializeApp(FB);var DBID=(window.APP_CONFIG&&window.APP_CONFIG.databaseId)||"(default)";
+      fdb=(DBID==="(default)")?F.getFirestore(app):F.getFirestore(app,DBID);fs=F;
+      var q=fs.query(fs.collection(fdb,"leaderboard"),fs.orderBy("totalXp","desc"),fs.limit(50));
+      fs.onSnapshot(q,function(s){gRows=s.docs.map(function(d){var v=d.data();
+        return{id:d.id,name:v.name,totalXp:v.totalXp||0};});FR=true;setLb();renderBoard();},
+        function(e){console.error(e);FR=false;setLb();$("lbNote").textContent=t("l_unreach");});
+      Object.keys(db.users).forEach(function(k){syncP(db.users[k]);});
+    }catch(e){console.error(e);NEEDS=true;setLb();}}
+  function syncP(u){if(!FR||!u)return;
+    try{fs.setDoc(fs.doc(fdb,"leaderboard",u.id),{name:String(u.name||"Quester").slice(0,40),
+      totalXp:u.totalXp||0,updatedAt:Date.now()}).catch(function(e){console.error(e);});}catch(e){console.error(e);}}
 
-  function setLbNote(){
-    var n = $("lbNote");
-    if(NEEDS_SETUP){
-      n.className = "lb-note off";
-      n.textContent = "Global leaderboard off — add Firebase config (see top of app.html) to compare with everyone.";
-    } else if(FB_READY){
-      n.className = "lb-note on";
-      n.textContent = "🌍 Global — everyone playing, worldwide.";
-    } else {
-      n.className = "lb-note off";
-      n.textContent = "Connecting to global leaderboard…";
+  /* ---- i18n apply ---- */
+  function fillSelect(sel,curLang){sel.innerHTML="";LANGS.forEach(function(L){
+    var o=document.createElement("option");o.value=L[0];o.textContent=L[1];
+    if(L[0]===curLang)o.selected=true;sel.appendChild(o);});}
+  function applyI18n(){
+    document.querySelectorAll("[data-i18n]").forEach(function(el){el.textContent=t(el.getAttribute("data-i18n"));});
+    document.querySelectorAll("[data-i18n-ph]").forEach(function(el){el.placeholder=t(el.getAttribute("data-i18n-ph"));});
+    $("authBtn").textContent=signup?t("b_up"):t("b_in");
+    var gs=[["",""],["gf","gf"],["gm","gm"],["gn","gn"],["go","go"],["gp","gp"]];
+    [$("a-gender")].forEach(function(sel){var cur=sel.value;sel.innerHTML="";
+      var o0=document.createElement("option");o0.value="";o0.textContent=t("gsel");sel.appendChild(o0);
+      ["gf","gm","gn","go","gp"].forEach(function(k){var o=document.createElement("option");
+        o.value=k;o.textContent=t(k);sel.appendChild(o);});sel.value=cur;});
+    var cq=$("cqXp"),cv=cq.value;cq.innerHTML="";
+    [["15","d_easy"],["25","d_med"],["40","d_hard"]].forEach(function(p){
+      var o=document.createElement("option");o.value=p[0];o.textContent=t(p[1]);cq.appendChild(o);});
+    cq.value=cv||"25";
+    $("a-reason").placeholder=t("why_ph");
+    $("quote").textContent='"'+QUOTES[new Date().getDate()%QUOTES.length]+'"';
+    if(me())render(); else setLb();
+  }
+  function setLang(l){lang=l;db.settings.lang=l;saveDB();
+    fillSelect($("langSel"),l);fillSelect($("langSel2"),l);applyI18n();}
+  $("langSel").addEventListener("change",function(){setLang(this.value);});
+  $("langSel2").addEventListener("change",function(){setLang(this.value);});
+
+  /* ---- theme/sound ---- */
+  function applySettings(){document.documentElement.setAttribute("data-theme",
+    db.settings.theme==="dark"?"dark":"light");
+    $("themeBtn").textContent=db.settings.theme==="dark"?"☀️":"🌙";
+    $("soundBtn").textContent=db.settings.sound?"🔊":"🔇";}
+  $("themeBtn").addEventListener("click",function(){
+    db.settings.theme=db.settings.theme==="dark"?"light":"dark";saveDB();applySettings();});
+  $("soundBtn").addEventListener("click",function(){
+    db.settings.sound=!db.settings.sound;saveDB();applySettings();
+    if(db.settings.sound)snd([660,880],.12);});
+
+  /* ---- auth ---- */
+  var signup=false;
+  function setMode(up){signup=up;
+    $("tabIn").classList.toggle("act",!up);$("tabUp").classList.toggle("act",up);
+    $("upFields").classList.toggle("hide",!up);$("authBtn").textContent=up?t("b_up"):t("b_in");}
+  $("tabIn").addEventListener("click",function(){setMode(false);});
+  $("tabUp").addEventListener("click",function(){setMode(true);});
+  $("authBtn").addEventListener("click",function(){
+    var us=$("a-user").value.trim(),pw=$("a-pass").value;
+    if(!us){toast(t("e_user"));return;}
+    if(!pw||pw.length<4){toast(t("e_pass"));return;}
+    if(signup){
+      if(db.users[us]){toast(t("e_exists"));return;}
+      var nm=$("a-name").value.trim(),ag=parseInt($("a-age").value,10),
+          gd=$("a-gender").value,rs=$("a-reason").value.trim();
+      if(!nm){toast(t("e_name"));return;}
+      if(!ag||ag<1||ag>120){toast(t("e_age"));return;}
+      if(!gd){toast(t("e_gender"));return;}
+      if(!rs){toast(t("e_reason"));return;}
+      db.users[us]={username:us,pass:hash(pw),id:newId(),name:nm,age:ag,gender:gd,reason:rs,
+        totalXp:0,completions:{},doneCount:0,streak:0,bestStreak:0,lastDay:null,
+        achievements:{},customTasks:[],flags:{}};
+      db.active=us;saveDB();syncP(db.users[us]);enterApp();
+    }else{
+      var u=db.users[us];
+      if(!u||u.pass!==hash(pw)){toast(t("e_login"));return;}
+      db.active=us;saveDB();ensure(u);enterApp();
     }
-  }
-
-  async function initFirebase(){
-    if(NEEDS_SETUP){ setLbNote(); return; }
-    setLbNote();
-    try{
-      var appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-      var fsMod  = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-      var app = appMod.initializeApp(FB);
-      var DBID = (window.APP_CONFIG && window.APP_CONFIG.databaseId) || "(default)";
-      fdb = (DBID === "(default)") ? fsMod.getFirestore(app)
-                                   : fsMod.getFirestore(app, DBID);
-      fs = fsMod;
-      var q = fs.query(fs.collection(fdb, "leaderboard"),
-                       fs.orderBy("totalXp", "desc"), fs.limit(50));
-      fs.onSnapshot(q, function(snap){
-        globalRows = snap.docs.map(function(d){
-          var v = d.data();
-          return { id: d.id, name: v.name, totalXp: v.totalXp || 0 };
-        });
-        FB_READY = true;
-        setLbNote();
-        renderBoard();
-      }, function(err){
-        console.error(err);
-        FB_READY = false;
-        setLbNote();
-        $("lbNote").textContent =
-          "Global leaderboard unreachable (offline or Firestore rules). Showing this device.";
-      });
-      // push every local profile so they all appear globally
-      Object.keys(db.players).forEach(function(k){ syncPlayer(db.players[k]); });
-    }catch(e){
-      console.error(e);
-      NEEDS_SETUP = true; // treat as unconfigured so app stays usable
-      setLbNote();
-    }
-  }
-
-  function syncPlayer(p){
-    if(!FB_READY || !p) return;
-    try{
-      fs.setDoc(fs.doc(fdb, "leaderboard", p.id), {
-        name: String(p.name || "Quester").slice(0,40),
-        totalXp: p.totalXp || 0,
-        updatedAt: Date.now()
-      }).catch(function(e){ console.error(e); });
-    }catch(e){ console.error(e); }
-  }
-
-  // ---- onboarding (4 questions) ----
-  function openOnboard(allowBack){
-    $("f-name").value = "";
-    $("f-age").value = "";
-    $("f-gender").value = "";
-    $("f-reason").value = "";
-    $("cancelOnboard").classList.toggle("hide", !allowBack);
-    show("onboard");
-  }
-  $("saveProfileBtn").addEventListener("click", function(){
-    var name = $("f-name").value.trim();
-    var age  = parseInt($("f-age").value, 10);
-    var gender = $("f-gender").value;
-    var reason = $("f-reason").value.trim();
-    if(!name){ toast("Please enter your name."); return; }
-    if(!age || age < 1 || age > 120){ toast("Please enter a valid age."); return; }
-    if(!gender){ toast("Please select a gender."); return; }
-    if(!reason){ toast("Tell us why you're here."); return; }
-    var id = newId();
-    db.players[id] = {
-      id:id, name:name, age:age, gender:gender, reason:reason,
-      totalXp:0, completions:{}
-    };
-    db.currentId = id;
-    saveDB();
-    syncPlayer(db.players[id]);
-    enterApp();
   });
-  $("cancelOnboard").addEventListener("click", function(){
-    if(me()) enterApp(); else show("players");
-  });
+  $("logoutBtn").addEventListener("click",function(){
+    db.active=null;saveDB();
+    ["a-user","a-pass","a-name","a-age","a-reason"].forEach(function(i){$(i).value="";});
+    $("a-gender").value="";setMode(false);show("auth");});
 
-  // ---- player switcher ----
-  function openPlayers(){
-    var ids = Object.keys(db.players);
-    if(!ids.length){ openOnboard(false); return; }
-    var html = "";
-    ids.map(function(k){ return db.players[k]; })
-       .sort(function(a,b){ return (b.totalXp||0)-(a.totalXp||0); })
-       .forEach(function(p){
-      var info = levelInfo(p.totalXp||0);
-      var cur = p.id === db.currentId;
-      html +=
-        '<div class="prow ' + (cur?"cur":"") + '">' +
-          '<div class="ava">' + esc((p.name||"?").charAt(0).toUpperCase()) + '</div>' +
-          '<div class="info"><div class="pn">' + esc(p.name||"Quester") +
-            (cur?" (current)":"") + '</div>' +
-            '<div class="ps">Lv ' + info.tier + ' · ' + info.name + ' · ' +
-            (p.totalXp||0).toLocaleString() + ' XP</div></div>' +
-          (cur ? '' : '<button data-pid="' + p.id + '">Play</button>') +
-        '</div>';
-    });
-    $("playerList").innerHTML = html;
-    show("players");
-  }
-  $("playerList").addEventListener("click", function(e){
-    var b = e.target.closest("button[data-pid]");
-    if(!b) return;
-    db.currentId = b.getAttribute("data-pid");
-    saveDB();
-    syncPlayer(me());
-    enterApp();
-  });
-  $("newPlayerBtn").addEventListener("click", function(){ openOnboard(true); });
-  $("backToApp").addEventListener("click", function(){
-    if(me()) enterApp(); else openOnboard(false);
-  });
-  $("switchPlayerBtn").addEventListener("click", openPlayers);
+  /* ---- custom quests ---- */
+  $("cqAdd").addEventListener("click",function(){var u=me();if(!u)return;
+    var lb=$("cqLabel").value.trim();if(!lb){toast(t("q_name"));return;}
+    var em=$("cqEmoji").value.trim()||"⭐",xp=parseInt($("cqXp").value,10)||25;
+    u.customTasks.push({id:"c"+Date.now()+"_"+Math.random().toString(36).slice(2,5),
+      label:lb,emoji:em,xp:xp,custom:true});
+    $("cqLabel").value="";$("cqEmoji").value="";saveDB();buildGrid();render();
+    toast(t("q_added")+" +"+xp+" XP");});
 
-  // ---- main app ----
-  var tickTimer = null;
-  function enterApp(){
-    var u = me();
-    if(!u){ openOnboard(false); return; }
-    $("meName").textContent = u.name || "Quester";
-    $("meAva").textContent = (u.name || "?").charAt(0).toUpperCase();
-    render();
-    show("app");
-    if(!tickTimer) tickTimer = setInterval(render, 1000);
-  }
+  /* ---- app ---- */
+  var tick=null,cm={};
+  function tasksFor(u){return baseTasks.concat(u&&u.customTasks?u.customTasks:[]);}
+  function enterApp(){var u=me();if(!u){show("auth");return;}ensure(u);
+    buildGrid();render();applyI18n();show("app");
+    if(!tick)tick=setInterval(render,1000);}
+  function avail(u,id){var ts=u.completions[id];return !ts||(Date.now()-ts)>=CD;}
+  function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000)),h=Math.floor(s/3600),
+    m=Math.floor((s%3600)/60),x=s%60;var r=t("ready");
+    if(h>0)return r+" "+h+"h "+m+"m";if(m>0)return r+" "+m+"m "+x+"s";return r+" "+x+"s";}
+  function buildGrid(){var u=me();if(!u)return;var g=$("grid");g.innerHTML="";cm={};
+    tasksFor(u).forEach(function(tk){var b=document.createElement("button");
+      b.className="task";b.type="button";
+      b.innerHTML=(tk.custom?'<div class="del" data-del="1">✕</div>':"")+
+        '<div class="check">✅</div><div class="emoji">'+tk.emoji+'</div>'+
+        '<div class="label">'+esc(tk.label)+'</div><div class="meta"></div>';
+      b.addEventListener("click",function(e){
+        if(e.target&&e.target.getAttribute("data-del")){
+          if(confirm(t("q_del"))){u.customTasks=u.customTasks.filter(function(x){return x.id!==tk.id;});
+            saveDB();buildGrid();render();}return;}
+        doTask(tk);});
+      g.appendChild(b);cm[tk.id]={b:b,m:b.querySelector(".meta")};});}
+  function todayCount(u){var k=dk(Date.now()),n=0;
+    for(var x in u.completions){if(dk(u.completions[x])===k)n++;}return n;}
+  function ctxOf(u){return{done:u.doneCount||0,best:u.bestStreak||0,tier:rankOf(u.totalXp).tier,
+    goalHit:!!(u.flags&&u.flags.goalEver),early:!!(u.flags&&u.flags.early),night:!!(u.flags&&u.flags.night)};}
+  function renderBadges(u){var c=ctxOf(u),h="",n=0;
+    ACHS.forEach(function(a){var on=!!u.achievements[a.id];if(on)n++;
+      h+='<div class="badge '+(on?"on":"")+'"><div class="bi">'+a.i+'</div>'+
+        '<div class="bn">'+a.n+'</div><div class="bd">'+a.d+'</div></div>';});
+    $("badges").innerHTML=h;$("achSummary").textContent=t("a_count",{n:n,m:ACHS.length});}
+  function checkAch(u,sil){var c=ctxOf(u),nw=[];
+    ACHS.forEach(function(a){if(!u.achievements[a.id]&&a.t(c)){u.achievements[a.id]=true;nw.push(a);}});
+    if(nw.length){saveDB();if(!sil){nw.forEach(function(a){toast(t("a_unl",{n:a.n}));});
+      confetti();snd([660,880,1320],.14);}}return nw.length>0;}
+  function render(){var u=me();if(!u)return;var R=rankOf(u.totalXp);
+    $("meAva").textContent=R.emoji;$("meAva").style.background=grad(R.c1,R.c2);
+    $("meName").textContent=u.name||"Quester";$("meLvl").textContent="Lv "+R.tier;
+    $("meRank").textContent=R.name;$("meRank").style.background=grad(R.c1,R.c2);
+    $("fill").style.background=grad(R.c1,R.c2);
+    if(R.max){$("barWhat").textContent=t("maxed");
+      $("barXp").textContent=u.totalXp.toLocaleString()+" XP";$("fill").style.width="100%";}
+    else{var into=u.totalXp-R.floor,span=R.next-R.floor;
+      $("barWhat").textContent=t("prog",{r:R.nextName});
+      $("barXp").textContent=into.toLocaleString()+" / "+span.toLocaleString()+" XP";
+      $("fill").style.width=Math.min(100,(into/span)*100)+"%";}
+    var tc=todayCount(u);
+    $("streakN").textContent=u.streak||0;$("goalN").textContent=Math.min(tc,GOAL)+"/"+GOAL;
+    $("pillGoal").classList.toggle("done",tc>=GOAL);
+    $("todayN").textContent=tc;$("bestN").textContent=u.bestStreak||0;$("totalN").textContent=u.doneCount||0;
+    tasksFor(u).forEach(function(tk){var c=cm[tk.id];if(!c)return;
+      if(avail(u,tk.id)){c.b.classList.remove("done");c.b.disabled=false;c.m.textContent="+"+tk.xp+" XP";}
+      else{c.b.classList.add("done");c.b.disabled=true;
+        c.m.textContent=fmt(CD-(Date.now()-u.completions[tk.id]));}});
+    renderBadges(u);renderBoard();}
+  function floatXp(c,a){var f=document.createElement("div");f.className="floatxp";
+    f.textContent="+"+a+" XP";c.appendChild(f);
+    setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},1000);}
+  var luT=null;
+  function showLU(n){var e=$("levelup");e.textContent=t("rankup",{r:n});e.classList.add("show");
+    confetti();snd([523,659,784,1046],.16);buzz([0,40,30,40]);
+    if(luT)clearTimeout(luT);luT=setTimeout(function(){e.classList.remove("show");},2800);}
+  function doTask(tk){var u=me();if(!u||!avail(u,tk.id))return;
+    var before=rankOf(u.totalXp).tier,now=Date.now(),hr=new Date(now).getHours();
+    u.totalXp+=tk.xp;u.completions[tk.id]=now;u.doneCount=(u.doneCount||0)+1;
+    var td=dk(now),ye=dk(now-86400000);
+    if(u.lastDay!==td){u.streak=(u.lastDay===ye)?(u.streak||0)+1:1;u.lastDay=td;
+      if(u.streak>(u.bestStreak||0))u.bestStreak=u.streak;}
+    if(hr<7)u.flags.early=true;if(hr>=23)u.flags.night=true;
+    var tc=todayCount(u);
+    if(tc>=GOAL&&u.flags.goalDay!==td){u.flags.goalDay=td;u.flags.goalEver=true;
+      u.totalXp+=BONUS;toast(t("goalb",{x:BONUS}));confetti();snd([784,988,1318],.15);}
+    saveDB();floatXp(cm[tk.id].b,tk.xp);snd([880],.10);buzz(18);render();
+    var af=rankOf(u.totalXp);if(af.tier>before)showLU(af.name);
+    checkAch(u,false);syncP(u);}
+  function renderBoard(){var rows;
+    if(FR&&gRows){rows=gRows.slice(0,50);}
+    else{rows=Object.keys(db.users).map(function(k){var p=db.users[k];
+      return{id:p.id,name:p.name,totalXp:p.totalXp||0};});}
+    rows=rows.sort(function(a,b){return(b.totalXp||0)-(a.totalXp||0);}).slice(0,50);
+    if(!rows.length){$("board").innerHTML='<p class="muted">'+t("l_none")+'</p>';return;}
+    var mid=me()?me().id:null,h="";
+    rows.forEach(function(r,i){var R=rankOf(r.totalXp||0),mine=r.id===mid;
+      h+='<div class="lb-row '+(mine?"me ":"")+'"><div class="lb-rank">'+
+        (i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1))+'</div><div class="lb-name">'+
+        esc(r.name||"Quester")+(mine?' <span style="color:var(--accent);font-size:12px">('+t("you")+')</span>':"")+
+        '</div><div class="lb-tier">'+R.name+'</div><div class="lb-xp">'+
+        (r.totalXp||0).toLocaleString()+' XP</div></div>';});
+    $("board").innerHTML=h;}
 
-  function isAvailable(u, id){
-    var ts = u.completions[id];
-    return !ts || (Date.now() - ts) >= COOLDOWN_MS;
-  }
-  function formatRemaining(ms){
-    var s = Math.max(0, Math.ceil(ms / 1000));
-    var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-    if(h > 0) return "Ready in " + h + "h " + m + "m";
-    if(m > 0) return "Ready in " + m + "m " + sec + "s";
-    return "Ready in " + sec + "s";
-  }
-
-  var grid = $("grid");
-  var cardMap = {};
-  tasks.forEach(function(t){
-    var btn = document.createElement("button");
-    btn.className = "task";
-    btn.type = "button";
-    btn.innerHTML =
-      '<div class="check">✅</div>' +
-      '<div class="emoji">' + t.emoji + '</div>' +
-      '<div class="label">' + t.label + '</div>' +
-      '<div class="meta"></div>';
-    btn.addEventListener("click", function(){ completeTask(t); });
-    grid.appendChild(btn);
-    cardMap[t.id] = { btn: btn, meta: btn.querySelector(".meta") };
-  });
-
-  function render(){
-    var u = me();
-    if(!u) return;
-    var info = levelInfo(u.totalXp);
-    $("meLvl").textContent = "Lv " + info.tier;
-    $("meRank").textContent = info.name;
-    if(info.max){
-      $("barWhat").textContent = "Max rank — keep farming!";
-      $("barXp").textContent = u.totalXp.toLocaleString() + " XP";
-      $("fill").style.width = "100%";
-    } else {
-      var into = u.totalXp - info.floor;
-      var span = info.next - info.floor;
-      $("barWhat").textContent = "Progress to " + info.nextName;
-      $("barXp").textContent = into.toLocaleString() + " / " + span.toLocaleString() + " XP";
-      $("fill").style.width = Math.min(100, (into/span)*100) + "%";
-    }
-    tasks.forEach(function(t){
-      var c = cardMap[t.id];
-      if(isAvailable(u, t.id)){
-        c.btn.classList.remove("done");
-        c.btn.disabled = false;
-        c.meta.textContent = "+" + t.xp + " XP";
-      } else {
-        c.btn.classList.add("done");
-        c.btn.disabled = true;
-        c.meta.textContent = formatRemaining(COOLDOWN_MS - (Date.now() - u.completions[t.id]));
-      }
-    });
-    renderBoard();
-  }
-
-  function floatXp(card, amount){
-    var f = document.createElement("div");
-    f.className = "floatxp";
-    f.textContent = "+" + amount + " XP";
-    card.appendChild(f);
-    setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 1000);
-  }
-  var levelupTimer = null;
-  function showLevelUp(name){
-    var el = $("levelup");
-    el.textContent = "⭐ Rank Up! You're now " + name + "!";
-    el.classList.add("show");
-    if(levelupTimer) clearTimeout(levelupTimer);
-    levelupTimer = setTimeout(function(){ el.classList.remove("show"); }, 2800);
-  }
-
-  function completeTask(t){
-    var u = me();
-    if(!u || !isAvailable(u, t.id)) return;
-    var before = levelInfo(u.totalXp).tier;
-    u.totalXp += t.xp;
-    u.completions[t.id] = Date.now();
-    saveDB();
-    floatXp(cardMap[t.id].btn, t.xp);
-    render();
-    var after = levelInfo(u.totalXp);
-    if(after.tier > before) showLevelUp(after.name);
-    syncPlayer(u);
-  }
-
-  function renderBoard(){
-    var rows;
-    if(FB_READY && globalRows){
-      rows = globalRows.slice(0, 50);
-    } else {
-      rows = Object.keys(db.players).map(function(k){
-        var p = db.players[k];
-        return { id:p.id, name:p.name, totalXp:p.totalXp||0 };
-      });
-    }
-    rows = rows.sort(function(a,b){ return (b.totalXp||0) - (a.totalXp||0); }).slice(0,50);
-    if(!rows.length){ $("board").innerHTML = '<p class="muted">No questers yet.</p>'; return; }
-    var html = "";
-    rows.forEach(function(u, i){
-      var info = levelInfo(u.totalXp || 0);
-      var mine = u.id === db.currentId;
-      html +=
-        '<div class="lb-row ' + (mine ? "me " : "") + '">' +
-          '<div class="lb-rank">' + (i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1)) + '</div>' +
-          '<div class="lb-name">' + esc(u.name || "Quester") + '</div>' +
-          '<div class="lb-tier">' + info.name + '</div>' +
-          '<div class="lb-xp">' + (u.totalXp||0).toLocaleString() + ' XP</div>' +
-        '</div>';
-    });
-    $("board").innerHTML = html;
-  }
-
-  // ---- boot ----
-  setLbNote();
-  initFirebase();
-  if(me()){
-    enterApp();
-  } else if(Object.keys(db.players).length){
-    openPlayers();
-  } else {
-    openOnboard(false);
-  }
+  /* ---- boot ---- */
+  (function detect(){
+    if(db.settings.lang&&T[db.settings.lang]){lang=db.settings.lang;return;}
+    var n=(navigator.language||"en").toLowerCase();
+    if(n.indexOf("fr")===0)lang="fr";else if(n.indexOf("es")===0)lang="es";
+    else if(n.indexOf("zh")===0)lang="zh";else if(n.indexOf("ja")===0)lang="ja";
+    else if(n.indexOf("hi")===0)lang="hi";else if(n==="en-gb")lang="en-GB";else lang="en";
+  })();
+  fillSelect($("langSel"),lang);fillSelect($("langSel2"),lang);
+  applySettings();setMode(false);applyI18n();initFB();
+  var cu=me();
+  if(cu){ensure(cu);checkAch(cu,true);enterApp();}else{show("auth");}
 })();
 </script>
 </body>
