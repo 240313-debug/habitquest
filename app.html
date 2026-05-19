@@ -235,7 +235,7 @@
 <script>
 (function(){
   "use strict";
-  var SK="hq.v4", CD=24*60*60*1000, GOAL=5, BONUS=50;
+  var SK="hq.v5", CD=24*60*60*1000, GOAL=5, BONUS=50; /* bumped to v5 = fresh accounts for everyone */
   var FB=(window.APP_CONFIG&&window.APP_CONFIG.firebase)||{};
   var NEEDS=["apiKey","projectId","appId"].some(function(k){return typeof FB[k]!=="string"||FB[k].indexOf("PASTE")===0;});
 
